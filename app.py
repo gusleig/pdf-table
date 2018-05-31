@@ -1,4 +1,3 @@
-#import tabula
 from tabula import read_pdf
 import re
 import pandas as pd
@@ -8,7 +7,8 @@ po = {'header': None, 'error_bad_lines': True, 'sep': '; ', 'engine': 'python'}
 
 def read_pdf_file():
     try:
-        pd = read_pdf("943703862.pdf", stream=True, lattice=False, output_format="dataframe", encoding='latin-1', java_options=None,pandas_options=po, mutiple_tables=True, pages="all",guess=False)
+        pd = read_pdf("943703862.pdf", stream=True, output_format="dataframe", area=(39.07, 27.13, 819.94, 552.27),
+                      encoding='utf-8', java_options=None, pandas_options=po, mutiple_tables=False, pages="all",guess=False)
         # json = read_pdf("943703862.pdf", stream=True, lattice=False, output_format="json", encoding='latin-1', java_options=None,pandas_options=po, mutiple_tables=True, pages="all",guess=False)
     except Exception as e:
         print("Error: {}".format(e))
@@ -42,10 +42,15 @@ for index, row in df.iterrows():
     # get index
     # match_index = re.search(r'^[0-9]{10}([,]*?)', rowstr)
     # find 10 digits betweens non digits
-    match_index = re.findall(r'(?<!\d)(\d{10})(?!\d)\s',rowstr)
+    match_index = re.findall(r'(?<!\d)(\d{10})(?!\d)\D*',rowstr)
 
     if match_index:
         indx = match_index[0]
+        if len(match_index)>1:
+            if int(match_index[0])!=int(match_index[1])-1:
+                match_index = [match_index[0]]
+
+
     else:
         indx = ""
 
@@ -56,10 +61,13 @@ for index, row in df.iterrows():
     else:
         date = ""
 
-    match_hour = re.findall(r'\s(?:\d{1,2}:?)[0-5]\d:[0-5]\d', rowstr)
+    match_hour = re.findall(r'(?:\d{1,2}:?)[0-5]\d:[0-5]\d', rowstr)
 
     if match_hour:
         hour = match_hour[0]
+        if len(match_index) == 1:
+            match_hour = [match_hour[0]]
+
     else:
         hour = ""
 
@@ -68,7 +76,8 @@ for index, row in df.iterrows():
     if match_dur:
         dur = match_dur[0]
     else:
-        dur = ""
+        match_dur = re.findall(r'([0-9]+kb)', rowstr)
+
 
     match_numb = re.findall(r'\D(\d{8,11}),', rowstr)
 
@@ -95,7 +104,7 @@ for index, row in df.iterrows():
 
     # date = datetime.datetime.strptime(match.group(), '%d/%m/%Y').date()
 
-    if match_index and match_date and match_dur and match_hour and match_numb:
+    if match_index and match_date  and match_hour and match_numb:
         # generate CDR
         print("generates CDR OK")
         for i, val in enumerate(match_index):
